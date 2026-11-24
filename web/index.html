@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loteos Ivo</title>
+<meta name="description" content="Lotes con servicios en Eldorado, Misiones. Luz, agua, acceso asfaltado. Escritura inmediata.">
+<meta property="og:title" content="Loteos Ivo">
+<meta property="og:description" content="Lotes con servicios en el corazón de Misiones.">
+<meta property="og:image" content="plano.png">
+<meta name="theme-color" content="#f5f0eb">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--bg:#f5f0eb;--surface:#fff;--border:#e5ddd5;--border-hover:#d4c9be;--text:#2d2d2d;--text-sec:#7a6b5e;--text-ter:#a6988a;--accent:#c1694f;--accent-glow:rgba(193,105,79,.2);--accent-dim:rgba(193,105,79,.08);--radius:14px;--radius-sm:8px}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scrollbar-width:thin;scrollbar-color:var(--accent) transparent}
+body{font-family:Inter,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+a{text-decoration:none;color:inherit}
+img{max-width:100%;display:block}
+.container{max-width:1040px;margin:0 auto;padding:0 24px}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--accent);border-radius:4px}
+
+/* SCROLL PROGRESS */
+#progress{position:fixed;top:0;left:0;width:0;height:2px;background:var(--accent);z-index:9999;transition:width .1s linear}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:16px 0;transition:transform .5s cubic-bezier(.16,1,.3,1),background .4s,box-shadow .4s}
+nav.hidden{transform:translateY(-100%)}
+nav.scrolled{background:rgba(245,240,235,.9);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);box-shadow:0 1px 0 var(--border)}
+.nav-inner{display:flex;align-items:center;justify-content:space-between}
+.logo{font-size:1.2rem;font-weight:800;letter-spacing:-.04em;color:var(--text)}
+.logo span{color:var(--accent)}
+.nav-links{display:flex;gap:6px;list-style:none;align-items:center}
+.nav-links a{padding:8px 16px;border-radius:var(--radius-sm);font-size:.82rem;font-weight:500;color:var(--text-sec);transition:all .25s;position:relative}
+.nav-links a:hover,.nav-links a.active{color:var(--accent);background:var(--accent-dim)}
+.whatsapp-nav{display:inline-flex!important;align-items:center;gap:6px;background:#25D366!important;color:#fff!important;font-weight:700!important;padding:8px 18px!important}
+.whatsapp-nav:hover{background:#16a34a!important}
+.menu-toggle{display:none;flex-direction:column;gap:5px;cursor:pointer;background:none;border:none;padding:8px;z-index:1100}
+.menu-toggle span{width:24px;height:2px;background:var(--text);transition:all .3s;border-radius:2px}.nav-links.open{background:rgba(245,240,235,.97)!important;backdrop-filter:blur(40px)!important}
+.menu-toggle.open span:nth-child(1){transform:rotate(45deg) translate(5px,5px)}
+.menu-toggle.open span:nth-child(2){opacity:0}
+.menu-toggle.open span:nth-child(3){transform:rotate(-45deg) translate(5px,-5px)}
+
+/* HERO */
+.hero{position:relative;min-height:100vh;display:flex;align-items:center;overflow:hidden;background:var(--bg)}
+.hero-bg{position:absolute;inset:0;background:url('plano.png') center 20%/cover no-repeat;opacity:.08;transform:scale(1.1);transition:transform 12s ease}
+.hero:hover .hero-bg{transform:scale(1)}
+.hero-grain{position:absolute;inset:0;opacity:.035;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:256px;pointer-events:none}
+.hero-grid{position:relative;z-index:2;display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center;min-height:100vh;padding:120px 0 60px}
+.hero-left{position:relative}
+.hero-tag{display:inline-flex;align-items:center;gap:6px;font-size:.7rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:28px}
+.hero-tag::before{content:'';width:20px;height:1.5px;background:var(--accent)}
+.hero h1{font-size:clamp(3rem,7vw,5.2rem);font-weight:800;line-height:.95;letter-spacing:-.04em;margin-bottom:20px}
+.hero h1 .outline{color:transparent;-webkit-text-stroke:1.5px var(--text);text-stroke:1.5px var(--text);opacity:.3}
+.hero h1 .accent{color:var(--accent)}
+.hero p{font-size:1rem;color:var(--text-sec);max-width:420px;line-height:1.75;margin-bottom:36px;font-weight:400}
+.hero-actions{display:flex;gap:12px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 28px;border-radius:var(--radius-sm);font-family:Inter,sans-serif;font-size:.88rem;font-weight:600;border:none;cursor:pointer;transition:all .3s cubic-bezier(.16,1,.3,1)}
+.btn-primary{background:var(--accent);color:#09090b}
+.btn-primary:hover{box-shadow:0 0 40px var(--accent-glow);transform:translateY(-2px)}
+.btn-ghost{background:var(--surface);color:var(--text);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--accent-dim);border-color:var(--accent);transform:translateY(-2px)}
+.hero-right{display:flex;justify-content:center;align-items:center}
+.hero-metrics{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:340px}
+.metric-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;text-align:center;transition:all .3s;box-shadow:0 1px 3px rgba(0,0,0,.03)}
+.metric-card:hover{border-color:var(--accent);box-shadow:0 4px 20px rgba(0,0,0,.04)}
+.metric-card .num{font-size:1.8rem;font-weight:800;letter-spacing:-.03em;color:var(--text);line-height:1}
+.metric-card .num .green{color:var(--accent)}
+.metric-card .lbl{font-size:.72rem;color:var(--text-ter);margin-top:6px;font-weight:500;text-transform:uppercase;letter-spacing:.08em}
+.hero-scroll{position:absolute;bottom:32px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--text-ter);font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;animation:float 2.5s ease-in-out infinite}
+.hero-scroll{color:var(--text-ter)}.hero-scroll .line{width:1px;height:28px;background:linear-gradient(to bottom,var(--text-ter),transparent)}
+@keyframes float{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-6px)}}
+
+/* SECTION */
+.section{padding:120px 0;border-bottom:1px solid var(--border)}
+.section:last-of-type{border-bottom:none}
+.section-head{margin-bottom:56px}
+.section-tag{font-size:.65rem;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.section-tag::after{content:'';flex:1;height:1px;background:var(--border);max-width:60px}
+.section-title{font-size:clamp(1.6rem,3vw,2.4rem);font-weight:700;letter-spacing:-.03em;line-height:1.1;margin-bottom:12px}
+.section-sub{font-size:.92rem;color:var(--text-sec);max-width:520px;line-height:1.7}
+
+/* HIGHLIGHTS DASHBOARD */
+.dash-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.dash-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px 24px;transition:all .3s}
+.dash-card:hover{border-color:var(--accent);background:var(--accent-dim);transform:translateY(-2px)}
+.dash-icon{width:40px;height:40px;border-radius:var(--radius-sm);background:var(--accent-dim);display:flex;align-items:center;justify-content:center;font-size:1.1rem;margin-bottom:14px}
+.dash-card h4{font-size:.92rem;font-weight:600;margin-bottom:4px}
+.dash-card p{font-size:.8rem;color:var(--text-sec);line-height:1.6}
+
+/* ABOUT */
+.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center}
+.about-visual{position:relative;border-radius:var(--radius);overflow:hidden;aspect-ratio:4/3;background:var(--surface);border:1px solid var(--border)}
+.about-visual img{width:100%;height:100%;object-fit:cover;object-position:center 70%}
+.about-visual .corner{position:absolute;width:48px;height:48px;border-color:var(--accent);border-style:solid;border-width:0;pointer-events:none;opacity:.7}
+.about-visual .corner.tl{top:12px;left:12px;border-top-width:2px;border-left-width:2px}
+.about-visual .corner.br{bottom:12px;right:12px;border-bottom-width:2px;border-right-width:2px}
+.about-text h3{font-size:1.3rem;font-weight:700;letter-spacing:-.02em;margin-bottom:12px}
+.about-text p{font-size:.9rem;color:var(--text-sec);margin-bottom:12px;line-height:1.8}
+.tag-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}
+.tag{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:.8rem;font-weight:500;color:var(--text-sec);transition:all .3s}
+.tag:hover{border-color:var(--accent);color:var(--text)}
+
+/* LOTS */
+.lots-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.lot-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:all .4s cubic-bezier(.16,1,.3,1);opacity:0;transform:translateY(30px)}
+.lot-card.visible{opacity:1;transform:translateY(0)}
+.lot-card:hover{border-color:var(--accent);transform:translateY(-4px);box-shadow:0 20px 60px rgba(0,0,0,.06)}
+.lot-card-image{height:180px;background:var(--accent-dim);position:relative;overflow:hidden}
+.lot-card-image img{width:100%;height:100%;object-fit:cover;transition:transform .5s;filter:grayscale(.2)}
+.lot-card:hover .lot-card-image img{transform:scale(1.05)}
+.lot-badge{position:absolute;top:12px;left:12px;padding:4px 12px;border-radius:50px;font-size:.65rem;font-weight:600;letter-spacing:.03em;text-transform:uppercase}
+.lot-badge.available{background:#2ECC71;color:#fff}
+.lot-badge.sold{background:#ef4444;color:#fff}
+.lot-card-body{padding:20px}
+.lot-card-body h3{font-size:1.05rem;font-weight:700;letter-spacing:-.02em;margin-bottom:2px}
+.lot-loc{font-size:.75rem;color:var(--text-ter);margin-bottom:12px}
+.lot-specs{display:flex;gap:8px;margin-bottom:12px}
+.lot-spec{background:var(--bg);padding:4px 10px;border-radius:4px;font-size:.7rem;font-weight:500;color:var(--text-sec);border:1px solid var(--border)}
+.lot-price-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.lot-price{font-size:1.3rem;font-weight:800;letter-spacing:-.03em;color:var(--accent)}
+.lot-price small{font-size:.7rem;font-weight:500;color:var(--text-ter);letter-spacing:0}
+.lot-size{font-size:.78rem;color:var(--text-sec)}
+.btn-lot{width:100%;padding:12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:transparent;color:var(--text);font-family:Inter,sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .3s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-lot:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* PLAN */
+#plano{border-bottom:none}
+.plan-wrapper{margin-top:56px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);position:relative;background:var(--surface)}
+.plan-wrapper img{width:100%;height:auto;display:block;pointer-events:none}
+.plan-img-wrap{position:relative;overflow:hidden}
+.plan-hotspot{position:absolute;cursor:pointer;border:2.5px solid var(--accent);background:var(--accent);opacity:0;transition:opacity .25s;border-radius:4px;z-index:4}
+.plan-hotspot.sold{border-color:#a6988a;background:#a6988a}
+.plan-hotspot:hover{opacity:.35!important;z-index:6}
+.plan-hotspot:focus-visible{outline:2px solid var(--accent);outline-offset:2px;z-index:7}
+.plan-hotspot.selected{opacity:.45!important;z-index:6}
+.plan-hotspot:hover~.plan-hotspot-label,.plan-hotspot:focus~.plan-hotspot-label,.plan-hotspot.selected~.plan-hotspot-label{opacity:1}
+.plan-hotspot-label{position:absolute;pointer-events:none;font-weight:700;font-size:clamp(12px,2.2vw,22px);color:var(--accent);text-align:center;width:40px;height:40px;display:flex;align-items:center;justify-content:center;opacity:.45;transition:opacity .25s;z-index:3;font-family:Inter,sans-serif;text-shadow:0 1px 4px rgba(0,0,0,.08)}
+.plan-hotspot-label.sold{color:#a6988a}
+.plan-hotspot-label.always{opacity:.5}
+.plan-tip{position:absolute;pointer-events:none;background:#2d2d2d;color:#fff;padding:8px 14px;border-radius:8px;font-size:.78rem;line-height:1.5;white-space:nowrap;opacity:0;transition:opacity .2s;z-index:10;font-family:Inter,sans-serif;box-shadow:0 4px 20px rgba(0,0,0,.15)}
+.plan-hover-card{display:none;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);opacity:0;transform:translateY(6px);transition:all .35s ease;pointer-events:none;margin-top:0}
+.plan-hover-card.show{display:flex}
+.plan-hover-card .ph-left{display:flex;align-items:center;gap:12px}
+.plan-hover-card .ph-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.plan-hover-card .ph-name{font-weight:700;font-size:.85rem;color:var(--text)}
+.plan-hover-card .ph-meta{font-size:.73rem;color:var(--text-sec);margin-top:1px}
+.plan-hover-card .ph-right{display:flex;align-items:center;gap:14px;flex-shrink:0}
+.plan-hover-card .ph-price{font-weight:700;font-size:.88rem;color:var(--accent);white-space:nowrap}
+.plan-hover-card .ph-st{font-size:.68rem;font-weight:600;padding:3px 10px;border-radius:50px}
+.plan-strip{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--border)}
+.plan-stat{padding:24px;text-align:center;border-right:1px solid var(--border);background:var(--surface)}
+.plan-stat:last-child{border-right:none}
+.plan-stat .num{font-size:1.5rem;font-weight:800;letter-spacing:-.03em;color:var(--accent)}
+.plan-stat .lbl{font-size:.72rem;color:var(--text-ter);margin-top:2px;text-transform:uppercase;letter-spacing:.06em;font-weight:500}
+
+/* WHY */
+.why-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.why-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:36px 28px;transition:all .3s}
+.why-card:hover{border-color:var(--accent);background:var(--accent-dim);transform:translateY(-2px)}
+.why-card .num{font-size:2.8rem;font-weight:800;letter-spacing:-.06em;color:var(--accent);line-height:1;margin-bottom:16px;opacity:.6}
+.why-card h4{font-size:1.05rem;font-weight:700;margin-bottom:8px;letter-spacing:-.02em}
+.why-card p{font-size:.84rem;color:var(--text-sec);line-height:1.7}
+
+/* STEPS */
+.steps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.step-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:32px 24px;text-align:center;transition:all .3s;position:relative}
+.step-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.step-num{width:44px;height:44px;border-radius:50%;background:var(--accent-dim);color:var(--accent);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:1rem;font-weight:800}
+.step-card h4{font-size:.95rem;font-weight:600;margin-bottom:6px}
+.step-card p{font-size:.8rem;color:var(--text-sec);line-height:1.6}
+
+/* FINANCE */
+.finance-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.finance-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:36px 28px;text-align:center;transition:all .3s}
+.finance-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.finance-card.featured{border-color:var(--accent);position:relative;background:var(--accent-dim)}
+.finance-card.featured::before{content:'Recomendado';position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:3px 16px;border-radius:50px;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+.finance-card h4{font-size:.95rem;font-weight:600;margin-bottom:4px}
+.finance-card .price{font-size:1.5rem;font-weight:800;letter-spacing:-.03em;color:var(--accent);margin-bottom:2px}
+.finance-card .price-sub{font-size:.78rem;color:var(--text-ter);margin-bottom:16px}
+.finance-card ul{list-style:none;text-align:left;margin-bottom:20px}
+.finance-card ul li{padding:7px 0;font-size:.82rem;color:var(--text-sec);display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)}
+.finance-card ul li:last-child{border-bottom:none}
+.finance-card ul li::before{content:'→';color:var(--accent);font-weight:700}
+.btn-finance{width:100%;padding:12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:transparent;color:var(--text);font-family:Inter,sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .3s;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn-finance:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* GALLERY */
+.gallery-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.gallery-item{border-radius:var(--radius-sm);overflow:hidden;aspect-ratio:1;background:var(--accent-dim);cursor:pointer;position:relative;border:1px solid var(--border)}
+.gallery-item:nth-child(1){grid-column:span 2;grid-row:span 2}
+.gallery-item img{width:100%;height:100%;object-fit:cover;transition:transform .5s;transition:all .5s}
+.gallery-item:nth-child(1) img{object-position:center 30%}
+.gallery-item:nth-child(2) img{object-position:center 60%}
+.gallery-item:nth-child(3) img{object-position:center 80%}
+.gallery-item:nth-child(4) img{object-position:center 50%}
+.gallery-item:nth-child(5) img{object-position:center 20%}
+.gallery-item:hover img{transform:scale(1.06);filter:grayscale(0)}
+.gallery-item .overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.7),transparent 60%);display:flex;align-items:flex-end;padding:16px;opacity:0;transition:opacity .3s}
+.gallery-item:hover .overlay{opacity:1}
+.gallery-item .overlay span{font-size:.75rem;font-weight:500;color:#fff}
+.lightbox{position:fixed;inset:0;z-index:2000;background:rgba(12,26,20,.92);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .4s;backdrop-filter:blur(40px)}
+.lightbox.open{opacity:1;pointer-events:all}
+.lightbox img{max-width:88vw;max-height:82vh;border-radius:var(--radius-sm)}
+.lightbox-close{position:absolute;top:24px;right:32px;background:none;border:none;color:var(--text);font-size:1.8rem;cursor:pointer;opacity:.4;transition:opacity .3s}
+.lightbox-close:hover{opacity:1}
+
+/* MAP */
+#map{height:600px;border-radius:var(--radius);margin-top:24px;border:1px solid var(--border);z-index:1}
+.lot-tooltip{background:#fff!important;border:1px solid var(--border)!important;border-radius:8px!important;box-shadow:0 4px 20px rgba(0,0,0,.07)!important;padding:6px 12px!important;font-family:Inter,sans-serif!important;font-size:.78rem!important;line-height:1.5!important;color:var(--text)!important}
+.lot-tooltip::before{border-top-color:var(--border)!important}
+#lotInfoCard{display:none;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;padding:14px 20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);opacity:0;transform:translateY(6px);transition:all .35s ease;pointer-events:none}
+#lotInfoCard.show{display:flex}
+#lotInfoCard .i-left{display:flex;align-items:center;gap:12px}
+#lotInfoCard .i-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+#lotInfoCard .i-name{font-weight:700;font-size:.85rem;color:var(--text)}
+#lotInfoCard .i-meta{font-size:.73rem;color:var(--text-sec);margin-top:1px}
+#lotInfoCard .i-right{display:flex;align-items:center;gap:14px;flex-shrink:0}
+#lotInfoCard .i-price{font-weight:700;font-size:.88rem;color:var(--accent);white-space:nowrap}
+#lotInfoCard .i-st{font-size:.68rem;font-weight:600;padding:3px 10px;border-radius:50px}
+.loc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-top:16px}
+.loc-chip{display:flex;align-items:center;gap:8px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:.8rem;color:var(--text-sec);transition:all .3s}
+.loc-chip:hover{border-color:var(--accent);color:var(--text)}
+.loc-chip .ico{font-size:1rem}
+
+/* CONTACT */
+.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px}
+.contact-info h4{font-size:1.1rem;font-weight:700;margin-bottom:8px}
+.contact-info>p{font-size:.88rem;color:var(--text-sec);margin-bottom:28px;line-height:1.7}
+.c-item{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.c-icon{width:42px;height:42px;border-radius:var(--radius-sm);background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--accent)}
+.c-text .c-strong{display:block;font-size:.85rem;font-weight:600;color:var(--text);margin-bottom:1px}
+.c-text .c-light{font-size:.78rem;color:var(--text-ter)}
+.contact-form{display:flex;flex-direction:column;gap:12px}
+.contact-form input,.contact-form select,.contact-form textarea{padding:13px 16px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:Inter,sans-serif;font-size:.85rem;transition:all .25s;outline:none}
+.contact-form input::placeholder,.contact-form textarea::placeholder{color:var(--text-ter)}
+.contact-form input:focus,.contact-form select:focus,.contact-form textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
+.contact-form textarea{min-height:100px;resize:vertical}
+.contact-form select{appearance:none;cursor:pointer;color:var(--text)}
+.contact-form select option{background:var(--bg);color:var(--text)}
+.submit-btn{padding:13px 24px;border-radius:var(--radius-sm);border:none;cursor:pointer;font-family:Inter,sans-serif;font-size:.85rem;font-weight:600;transition:all .3s;display:inline-flex;align-items:center;gap:8px;align-self:flex-start;background:var(--accent);color:#fff}
+.submit-btn:hover{box-shadow:0 0 40px var(--accent-glow);transform:translateY(-2px)}
+.submit-btn.loading{pointer-events:none;opacity:.5}
+
+/* FLOATING WA */
+.floating-wa{position:fixed;bottom:24px;right:24px;z-index:999;width:52px;height:52px;border-radius:50%;background:#25D366;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(37,211,102,.3);transition:all .3s;color:#fff}
+.floating-wa:hover{transform:scale(1.1);box-shadow:0 4px 30px rgba(37,211,102,.4)}
+.floating-wa svg{width:24px;height:24px}
+.floating-wa .tip{position:absolute;right:60px;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:var(--radius-sm);font-size:.75rem;white-space:nowrap;opacity:0;pointer-events:none;transition:all .2s;box-shadow:0 4px 16px rgba(0,0,0,.06)}
+.floating-wa:hover .tip{opacity:1}
+
+/* FOOTER */
+footer{padding:48px 0 32px}
+.footer-inner{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;padding-bottom:24px;border-bottom:1px solid var(--border);margin-bottom:20px}
+.footer-inner .logo{font-size:1rem}
+footer .copy{font-size:.78rem;color:var(--text-ter);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}footer .copy a{color:var(--text-sec);transition:color .3s}footer .copy a:hover{color:var(--accent)}
+footer .copy a{color:var(--text-sec);transition:color .3s}
+footer .copy a:hover{color:var(--accent)}
+
+/* REVEAL */
+.reveal{opacity:0;transform:translateY(30px);transition:all .7s cubic-bezier(.16,1,.3,1)}
+.reveal.visible{opacity:1;transform:translateY(0)}
+.r1{transition-delay:.06s}
+.r2{transition-delay:.12s}
+.r3{transition-delay:.18s}
+.r4{transition-delay:.24s}
+.r5{transition-delay:.3s}
+
+@media(max-width:968px){
+  .hero-grid{grid-template-columns:1fr;gap:48px;padding:100px 0 60px}
+  .hero-right{justify-content:flex-start}
+  .hero-metrics{max-width:100%}
+  .dash-grid{grid-template-columns:repeat(2,1fr)}
+  .why-grid{grid-template-columns:1fr 1fr}
+  .steps-grid{grid-template-columns:repeat(2,1fr)}
+  .finance-grid{grid-template-columns:1fr 1fr}
+  .gallery-grid{grid-template-columns:repeat(2,1fr)}
+  .gallery-item:nth-child(1){grid-column:span 2;grid-row:span 1}
+  .plan-strip{grid-template-columns:repeat(2,1fr)}
+  .plan-stat:nth-child(2){border-right:none}
+}
+@media(max-width:768px){
+  .nav-links{display:none}
+  .menu-toggle{display:flex}
+  .nav-links.open{display:flex;flex-direction:column;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(245,240,235,.97);backdrop-filter:blur(40px);justify-content:center;align-items:center;gap:20px;z-index:1050}
+  .nav-links.open a{font-size:1.1rem;padding:12px 24px}
+  .about-grid{grid-template-columns:1fr;gap:40px}
+  .contact-grid{grid-template-columns:1fr;gap:40px}
+  .section{padding:80px 0}
+  .dash-grid{grid-template-columns:1fr}
+  .why-grid{grid-template-columns:1fr}
+  .steps-grid{grid-template-columns:1fr}
+  .finance-grid{grid-template-columns:1fr}
+  .lots-grid{grid-template-columns:1fr}
+}
+@media(max-width:480px){
+  .gallery-grid{grid-template-columns:1fr}
+  .gallery-item:nth-child(1){grid-column:span 1}
+  .hero h1{font-size:2.6rem}
+  .hero-metrics{grid-template-columns:1fr 1fr}
+  .plan-strip{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+
+<nav id="nav">
+  <div class="container nav-inner">
+    <a href="#" class="logo">loteos<span>.</span>ivo</a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="#lotes">Lotes</a></li>
+      <li><a href="#plano">Plano</a></li>
+      <li><a href="#invertir">Invertir</a></li>
+      <li><a href="#ubicacion">Ubicación</a></li>
+      <li><a href="#contacto">Contacto</a></li>
+      <li><a href="https://wa.me/543751341566" target="_blank" class="whatsapp-nav">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        WhatsApp
+      </a></li>
+    </ul>
+    <button class="menu-toggle" id="menuToggle" aria-label="Menú">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grain"></div>
+  <div class="container hero-grid">
+    <div class="hero-left">
+      <div class="hero-tag">Eldorado, Misiones</div>
+      <h1>El terreno<br><span class="outline">perfecto</span><br><span class="accent">existe</span></h1>
+      <p>Lotes con todos los servicios, escritura inmediata y la naturaleza de Misiones como vecina. Tu lugar está esperando.</p>
+      <div class="hero-actions">
+        <a href="#lotes" class="btn btn-primary">Ver lotes</a>
+        <a href="https://wa.me/543751341566" target="_blank" class="btn btn-ghost">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          WhatsApp
+        </a>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="hero-metrics">
+        <div class="metric-card"><div class="num">18</div><div class="lbl">Lotes</div></div>
+        <div class="metric-card"><div class="num"><span class="green">16  </span></div><div class="lbl">Disponibles</div></div>
+        <div class="metric-card"><div class="num">350-700</div><div class="lbl">m² c/u</div></div>
+        <div class="metric-card"><div class="num">USD</div><div class="lbl">Desde 10.500</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="hero-scroll">
+    <span>Scroll</span>
+    <div class="line"></div>
+  </div>
+</section>
+
+<section class="section" id="acerca">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-tag">Servicios</div>
+      <h2 class="section-title">Todo lo que necesitás</h2>
+      <p class="section-sub">Luz trifásica, agua potable, acceso asfaltado y escritura inmediata. Sin sorpresas.</p>
+    </div>
+    <div class="dash-grid">
+      <div class="dash-card reveal r1"><div class="dash-icon">⚡</div><h4>Energía trifásica</h4><p>Conexión eléctrica incluida en cada lote.</p></div>
+      <div class="dash-card reveal r2"><div class="dash-icon">💧</div><h4>Agua potable</h4><p>Red de agua corriente en todo el terreno.</p></div>
+      <div class="dash-card reveal r3"><div class="dash-icon">🛣️</div><h4>Acceso asfaltado</h4><p>Llegás directo sin camino de tierra.</p></div>
+      <div class="dash-card reveal r4"><div class="dash-icon">📜</div><h4>Escritura inmediata</h4><p>Documentación al día. Transferencia segura.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section section-light" id="lotes">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-tag">Disponibles</div>
+      <h2 class="section-title">Lotes en venta</h2>
+      <p class="section-sub">Todos con servicios básicos conectados y escritura lista para transferir.</p>
+    </div>
+    <div class="lots-grid" id="lotsGrid"></div>
+  </div>
+</section>
+
+<section class="section" id="plano">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-tag">Plano</div>
+      <h2 class="section-title">Distribución</h2>
+      <p class="section-sub">Pasá el mouse sobre cada lote para ver sus datos.</p>
+    </div>
+    <div class="plan-wrapper reveal r1">
+      <div class="plan-img-wrap" id="planImgWrap">
+          <img src="plano.png" alt="Plano de Ds" id="planoImg" style="width:100%;height:auto;display:block">
+        <div class="plan-tip" id="planTip"></div>
+      </div>
+      <div class="plan-hover-card" id="planHoverCard">
+        <div class="ph-left">
+          <div class="ph-dot" id="phDot"></div>
+          <div>
+            <div class="ph-name" id="phName">Pasá el mouse sobre un lote</div>
+            <div class="ph-meta" id="phMeta"></div>
+          </div>
+        </div>
+        <div class="ph-right">
+          <div class="ph-price" id="phPrice"></div>
+          <div class="ph-st" id="phSt"></div>
+        </div>
+      </div>
+      <div class="plan-strip">
+        <div class="plan-stat"><div class="num" id="totalLots">0</div><div class="lbl">Lotes</div></div>
+        <div class="plan-stat"><div class="num" id="availLots">0</div><div class="lbl">Disponibles</div></div>
+        <div class="plan-stat"><div class="num" id="sizeRange">500-700</div><div class="lbl">m²</div></div>
+        <div class="plan-stat"><div class="num">USD</div><div class="lbl">Desde 10.500</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="invertir">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-tag">Inversión</div>
+      <h2 class="section-title">Por qué Eldorado</h2>
+      <p class="section-sub">Misiones crece. Eldorado es el punto justo entre naturaleza y desarrollo urbano.</p>
+    </div>
+    <div class="why-grid">
+      <div class="why-card reveal r1"><div class="num">01</div><h4>Plusvalía constante</h4><p>Los terrenos en la zona se revalorizan año a año. Invertir hoy es asegurar ganancia a futuro.</p></div>
+      <div class="why-card reveal r2"><div class="num">02</div><h4>Ubicación clave</h4><p>Cerca de rutas, comercios, escuelas y centros de salud. Todo a minutos.</p></div>
+      <div class="why-card reveal r3"><div class="num">03</div><h4>Calidad de vida</h4><p>Entorno natural único. Aire puro, vistas y tranquilidad sin estar aislado.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="pasos">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-tag">Proceso</div>
+      <h2 class="section-title">Cómo comprar</h2>
+      <p class="section-sub">Cuatro pasos simples. Te acompañamos en todo el proceso.</p>
+    </div>
+    <div class="steps-grid">
+      <div class="step-card reveal r1"><div class="step-num">1</div><h4>Elegí</h4><p>Revisá los lotes y seleccioná el que más te guste.</p></div>
+      <div class="step-card reveal r2"><div class="step-num">2</div><h4>Consultá</h4><p>Escribinos por WhatsApp o completá el formulario.</p></div>
+      <div class="step-card reveal r3"><div class="step-num">3</div><h4>Visitá</h4><p>Coordinamos una visita sin cargo al terreno.</p></div>
+      <div class="step-card reveal r4"><div class="step-num">4</div><h4>Escriturá</h4><p>Transferencia rápida con asistencia legal incluida.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="financiacion">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-tag">Financiación</div>
+      <h2 class="section-title">Elegí cómo pagar</h2>
+      <p class="section-sub">Planes flexibles. Consultá por descuentos por pago de contado.</p>
+    </div>
+    <div class="finance-grid">
+      <div class="finance-card reveal r1">
+        <h4>Contado</h4>
+        <div class="price">-10%</div>
+        <div class="price-sub">Descuento por pago total</div>
+        <ul>
+          <li>Precio final con descuento</li>
+          <li>Escritura inmediata</li>
+          <li>Sin trámites extra</li>
+        </ul>
+        <a href="https://wa.me/543751341566?text=Quiero%20consultar%20por%20pago%20de%20contado" target="_blank" class="btn-finance">Consultar</a>
+      </div>
+      <div class="finance-card featured reveal r2">
+        <h4>Cuotas fijas</h4>
+        <div class="price">12 cuotas</div>
+        <div class="price-sub">Sin interés · 30% inicial</div>
+        <ul>
+          <li>Cuotas fijas en USD</li>
+          <li>30% de anticipo</li>
+          <li>Sin interés financiero</li>
+        </ul>
+        <a href="https://wa.me/543751341566?text=Quiero%20consultar%20por%20financiación%20en%20cuotas" target="_blank" class="btn-finance">Consultar</a>
+      </div>
+      <div class="finance-card reveal r3">
+        <h4>A medida</h4>
+        <div class="price">Personalizado</div>
+        <div class="price-sub">Lo armamos juntos</div>
+        <ul>
+          <li>Plazos flexibles</li>
+          <li>Monto a convenir</li>
+          <li>Sin penalización</li>
+        </ul>
+        <a href="https://wa.me/543751341566?text=Quiero%20consultar%20por%20un%20plan%20personalizado" target="_blank" class="btn-finance">Consultar</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="galeria">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-tag">Galería</div>
+      <h2 class="section-title">El lugar</h2>
+      <p class="section-sub">Imágenes del entorno natural que rodea los terrenos.</p>
+    </div>
+    <div class="gallery-grid">
+      <div class="gallery-item reveal r1"><img src="plano.png" alt="Vista panorámica"><div class="overlay"><span>Vista panorámica</span></div></div>
+      <div class="gallery-item reveal r2"><img src="plano.png" alt="Entorno natural"><div class="overlay"><span>Entorno natural</span></div></div>
+      <div class="gallery-item reveal r3"><img src="plano.png" alt="Acceso"><div class="overlay"><span>Acceso principal</span></div></div>
+      <div class="gallery-item reveal r4"><img src="plano.png" alt="Vista aérea"><div class="overlay"><span>Vista aérea</span></div></div>
+      <div class="gallery-item reveal r1"><img src="plano.png" alt="Atardecer"><div class="overlay"><span>Atardecer en Eldorado</span></div></div>
+    </div>
+  </div>
+</section>
+
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" id="lightboxClose">&times;</button>
+  <img src="" alt="" id="lightboxImg">
+</div>
+
+<section class="section" id="ubicacion">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-tag">Ubicación</div>
+      <h2 class="section-title">Dónde estamos</h2>
+      <p class="section-sub">Eldorado, Misiones  . A minutos de todo, en medio de la naturaleza.</p>
+    </div>
+    <div id="map" class="reveal r1"></div>
+    <div id="lotInfoCard">
+      <div class="i-left">
+        <div class="i-dot" id="iDot"></div>
+        <div>
+          <div class="i-name" id="iName">Pasá el cursor sobre un lote</div>
+          <div class="i-meta" id="iMeta"></div>
+        </div>
+      </div>
+      <div class="i-right">
+        <div class="i-price" id="iPrice"></div>
+        <div class="i-st" id="iSt"></div>
+      </div>
+    </div>
+    <div class="loc-grid reveal r2">
+      <div class="loc-chip"><span class="ico">📍</span> Eldorado, Misiones</div>
+      <div class="loc-chip"><span class="ico">🏙️</span> 15 min del centro</div>
+      <div class="loc-chip"><span class="ico">🏫</span> Escuelas cercanas</div>
+      <div class="loc-chip"><span class="ico">🏥</span> Centro de salud</div>
+      <div class="loc-chip"><span class="ico">🛒</span> Comercios</div>
+      <div class="loc-chip"><span class="ico">🚌</span> Colectivo</div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="contacto">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-tag">Contacto</div>
+      <h2 class="section-title">Hablemos</h2>
+      <p class="section-sub">Respondemos todas tus preguntas. Coordinamos una visita sin cargo.</p>
+    </div>
+    <div class="contact-grid">
+      <div class="contact-info reveal r1">
+        <h4>Escribinos</h4>
+        <p>Estamos disponibles para lo que necesites. Consultanos sin compromiso.</p>
+        <div class="c-item">
+          <div class="c-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div>
+          <div class="c-text"><span class="c-strong">WhatsApp</span><span class="c-light">+54 9 3751 34-1566</span></div>
+        </div>
+        <div class="c-item">
+          <div class="c-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+          <div class="c-text"><span class="c-strong">Email</span><span class="c-light">info@loteosivo.com</span></div>
+        </div>
+        <div class="c-item">
+          <div class="c-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+          <div class="c-text"><span class="c-strong">Ubicación</span><span class="c-light">Eldorado, Misiones, Argentina</span></div>
+        </div>
+      </div>
+      <form class="contact-form reveal r2" id="contactForm">
+        <input type="text" placeholder="Nombre" required>
+        <input type="email" placeholder="Email" required>
+        <input type="tel" placeholder="Teléfono" required>
+        <select id="lotSelect" required>
+          <option value="" disabled selected>Lote de interés</option>
+        </select>
+        <textarea placeholder="Tu mensaje..."></textarea>
+        <button type="submit" class="submit-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+          Enviar consulta
+        </button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<a href="https://wa.me/543751341566" target="_blank" class="floating-wa" aria-label="WhatsApp">
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+  <span class="tip">WhatsApp</span>
+</a>
+
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="logo">loteos<span>.</span>ivo</div>
+      <span style="font-size:.78rem;color:var(--text-ter)">Eldorado, Misiones · Argentina</span>
+    </div>
+    <div class="copy">
+      <span>&copy; 2026 LoteosIvo</span>
+      <span>
+        <a href="https://wa.me/543751341566" target="_blank">WhatsApp</a>
+        ·
+        <a href="mailto:info@loteosivo.com">Email</a>
+      </span>
+    </div>
+  </div>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="insforge-config.js"></script>
+<script type="module">
+import { createClient } from 'https://esm.sh/@insforge/sdk@1.5.2';
+
+// Public client: the anon key is safe to ship to the browser. Never put the
+// full-access admin API key here.
+const insforge = createClient({
+  baseUrl: window.INSFORGE_URL,
+  anonKey: window.INSFORGE_ANON_KEY
+});
+
+let lots = [];
+const lotsGrid = document.getElementById('lotsGrid');
+const lotSelect = document.getElementById('lotSelect');
+
+function renderLots() {
+  lotsGrid.innerHTML = '';
+  lotSelect.innerHTML = '<option value="" disabled selected>Lote de interés</option>';
+  const names = Object.keys(lots);
+  names.forEach((name, i) => {
+    const lot = lots[name];
+    const sold = lot.estado === 'vendido';
+    const c = document.createElement('div');
+    c.className = 'lot-card';
+    c.style.transitionDelay = `${i * 0.04}s`;
+    c.innerHTML = `
+      <div class="lot-card-image">
+        <img src="${lot.image_url || 'plano.png'}" alt="${name}" style="object-position:center ${20 + i * 3}%">
+        <span class="lot-badge ${sold ? 'sold' : 'available'}">${sold ? 'Vendido' : 'Disponible'}</span>
+      </div>
+      <div class="lot-card-body">
+        <h3>${name}</h3>
+        <div class="lot-loc">Eldorado, Misiones</div>
+        <div class="lot-specs">
+          <span class="lot-spec">${lot.medidas}</span>
+          <span class="lot-spec">${lot.tamano_m2} m²</span>
+          ${lot.tag ? `<span class="lot-spec">${lot.tag}</span>` : ''}
+        </div>
+        <div class="lot-price-row">
+          <div class="lot-price">USD ${(lot.precio || 0).toLocaleString()}</div>
+          <div class="lot-size">${lot.tamano_m2} m²</div>
+        </div>
+        <a href="https://wa.me/543751341566?text=Hola%2C%20me%20interesa%20el%20${encodeURIComponent(name)}%20de%20Loteos%20Ivo%20en%20Eldorado%2C%20Misiones.%20Quisiera%20saber%20m%C3%A1s%20detalles.%0A%0A${window.location.origin}/terrenos" target="_blank" class="btn-lot">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          Consultar
+        </a>
+      </div>
+    `;
+    lotsGrid.appendChild(c);
+    const o = document.createElement('option');
+    o.value = name;
+    o.textContent = `${name} - ${lot.tamano_m2} m²`;
+    if (sold) o.disabled = true;
+    lotSelect.appendChild(o);
+  });
+  const total = names.length;
+  const disp = names.filter(n => lots[n].estado !== 'vendido').length;
+  document.getElementById('totalLots').textContent = total;
+  document.getElementById('availLots').textContent = disp;
+  document.querySelectorAll('.lot-card').forEach(el => obs.observe(el));
+}
+
+// Load lot data from InsForge; fall back to the bundled files if the backend is unreachable.
+async function loadLots() {
+  try {
+    const { data, error } = await insforge.database
+      .from('lots')
+      .select('name, precio, estado, medidas, tamano_m2, tag, image_url, geometry')
+      .order('name', { ascending: true })
+      .limit(100);
+    if (error) throw error;
+    lots = Object.fromEntries(data.map(row => [row.name, row]));
+  } catch (err) {
+    console.warn('InsForge unavailable, using local lot data', err);
+    const [datos, geo] = await Promise.all([
+      fetch('datos.json').then(r => r.json()),
+      fetch('parcelas.geojson').then(r => r.json())
+    ]);
+    lots = Object.fromEntries(Object.entries(datos).map(([name, value]) => [name, {
+      ...value,
+      name,
+      image_url: name === 'Lote 1' ? window.INSFORGE_IMAGES['Lote 1'] : window.INSFORGE_IMAGES.fallback,
+      geometry: geo.features.find(f => f.properties.name === name)?.geometry || null
+    }]));
+  }
+  renderLots();
+  renderMap();
+}
+loadLots();
+
+// Map — Interactive lot polygons
+const map = L.map('map', { zoomControl: false }).setView([-26.4167, -54.5823], 17);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>',
+  maxZoom: 19
+}).addTo(map);
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+const legend = L.control({ position: 'topright' });
+legend.onAdd = function() {
+  const div = L.DomUtil.create('div', 'leaflet-control');
+  div.style.cssText = 'background:#fff;padding:10px 14px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.12);font-family:Inter,sans-serif;font-size:12px;line-height:1.8;color:#2d2d2d;';
+  div.innerHTML = '<div style="font-weight:600;margin-bottom:4px;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#7a6b5e;">Leyenda</div>'
+    + '<div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:3px;background:#2ECC71;flex-shrink:0;"></span> Disponible</div>'
+    + '<div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:3px;background:#E74C3C;flex-shrink:0;"></span> Vendido</div>';
+  return div;
+};
+legend.addTo(map);
+
+// Lot polygons — cadastral geometry stored in the lots table
+const card = document.getElementById('lotInfoCard');
+const iDot = document.getElementById('iDot');
+const iName = document.getElementById('iName');
+const iMeta = document.getElementById('iMeta');
+const iPrice = document.getElementById('iPrice');
+const iSt = document.getElementById('iSt');
+
+function renderMap() {
+  const allBounds = [];
+  Object.values(lots).forEach(lot => {
+    const name = lot.name;
+    if (lot.geometry?.type !== 'Polygon') return;
+    const coords = lot.geometry.coordinates[0].map(c => [c[1], c[0]]);
+    coords.forEach(c => allBounds.push(c));
+    const sold = lot.estado === 'vendido';
+    const poly = L.polygon(coords, {
+      color: sold ? '#C0392B' : '#27AE60',
+      weight: 2,
+      fillColor: sold ? '#E74C3C' : '#2ECC71',
+      fillOpacity: sold ? .5 : .2,
+    }).addTo(map);
+    const latSum = coords.reduce((s, c) => s + c[0], 0);
+    const lngSum = coords.reduce((s, c) => s + c[1], 0);
+    const center = L.latLng(latSum / coords.length, lngSum / coords.length);
+    L.marker(center, {
+      icon: L.divIcon({
+        className: '',
+        html: `<span style="font-size:10px;font-weight:600;color:#333;text-shadow:1px 1px 2px #fff,-1px -1px 2px #fff,1px -1px 2px #fff,-1px 1px 2px #fff;white-space:nowrap;">${name}</span>`,
+        iconSize: [0, 0],
+        iconAnchor: [0, 0]
+      }),
+      interactive: false
+    }).addTo(map);
+    poly.bindPopup(`
+      <div class="p-2">
+        <h3 class="font-bold text-base mb-1">${name}</h3>
+        <p class="text-xs text-gray-600">Medidas: ${lot.medidas} · ${lot.tamano_m2} m²</p>
+        <p class="text-xs font-semibold mt-1">Estado: <span style="color:${sold ? '#E74C3C' : '#2ECC71'}">${sold ? 'VENDIDO' : 'DISPONIBLE'}</span></p>
+        ${lot.precio ? `<p class="text-xs mt-1">USD ${lot.precio.toLocaleString()}</p>` : ''}
+      </div>
+    `);
+    poly.on('mouseover', function() {
+      this.setStyle({ fillOpacity: sold ? .7 : .38, weight: 3 });
+      card.classList.add('show');
+      requestAnimationFrame(() => { card.style.opacity = '1'; card.style.transform = 'translateY(0)'; });
+      iDot.style.background = sold ? '#E74C3C' : '#2ECC71';
+      iName.textContent = `${name} · ${lot.tamano_m2} m²`;
+      iMeta.textContent = `${lot.medidas}${lot.tag ? ' · ' + lot.tag : ''}`;
+      iPrice.textContent = lot.precio ? `USD ${lot.precio.toLocaleString()}` : '';
+      iSt.textContent = sold ? 'Vendido' : 'Disponible';
+      iSt.style.background = sold ? 'rgba(231,76,60,.12)' : 'rgba(46,204,113,.12)';
+      iSt.style.color = sold ? '#E74C3C' : '#2ECC71';
+    });
+    poly.on('mouseout', function() {
+      this.setStyle({ fillOpacity: sold ? .5 : .2, weight: 2 });
+      card.style.opacity = '0'; card.style.transform = 'translateY(6px)';
+      setTimeout(() => { if (getComputedStyle(card).opacity === '0') card.classList.remove('show'); }, 360);
+    });
+  });
+  if (allBounds.length) map.fitBounds(L.latLngBounds(allBounds), { padding: [60, 60], maxZoom: 19 });
+}
+
+// --- Hotspots del plano (deshabilitados — usar mapa Leaflet) ---
+const planTip = document.getElementById('planTip');
+const phCard = document.getElementById('planHoverCard');
+const phDot = document.getElementById('phDot');
+const phName = document.getElementById('phName');
+const phMeta = document.getElementById('phMeta');
+const phPrice = document.getElementById('phPrice');
+const phSt = document.getElementById('phSt');
+
+let activeHotspot = null;
+let selectedHotspot = null;
+const isTouchDevice = 'ontouchstart' in window;
+
+// Observer
+const obs = new IntersectionObserver(e => {
+  e.forEach(en => { if (en.isIntersecting) en.target.classList.add('visible') });
+}, { threshold: .06 });
+document.querySelectorAll('.reveal, .lot-card').forEach(el => obs.observe(el));
+
+// Nav hide/show on scroll
+let lastScroll = 0;
+const nav = document.getElementById('nav');
+window.addEventListener('scroll', () => {
+  const s = window.scrollY;
+  nav.classList.toggle('scrolled', s > 60);
+  nav.classList.toggle('hidden', s > 200 && s > lastScroll);
+  lastScroll = s;
+
+  // active nav
+  document.querySelectorAll('.nav-links a:not(.whatsapp-nav)').forEach(a => {
+    const el = document.getElementById(a.getAttribute('href').slice(1));
+    if (el) {
+      const r = el.getBoundingClientRect();
+      a.classList.toggle('active', r.top <= 150 && r.bottom >= 150);
+    }
+  });
+
+  // progress
+  const h = document.documentElement.scrollHeight - window.innerHeight;
+  document.getElementById('progress').style.width = `${(s / h) * 100}%`;
+});
+
+// Menu
+document.getElementById('menuToggle').addEventListener('click', function() {
+  this.classList.toggle('open');
+  document.getElementById('navLinks').classList.toggle('open');
+});
+document.querySelectorAll('.nav-links a').forEach(a => {
+  a.addEventListener('click', () => {
+    document.getElementById('menuToggle').classList.remove('open');
+    document.getElementById('navLinks').classList.remove('open');
+  });
+});
+
+// Form
+document.getElementById('contactForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const btn = e.target.querySelector('.submit-btn');
+  const orig = btn.innerHTML;
+  btn.innerHTML = '✓ Enviado';
+  btn.classList.add('loading');
+  setTimeout(() => {
+    btn.innerHTML = orig;
+    btn.classList.remove('loading');
+    e.target.reset();
+  }, 2500);
+});
+
+// Gallery lightbox
+document.querySelectorAll('.gallery-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const img = item.querySelector('img');
+    document.getElementById('lightboxImg').src = img.src;
+    document.getElementById('lightbox').classList.add('open');
+  });
+});
+document.getElementById('lightboxClose').addEventListener('click', () => {
+  document.getElementById('lightbox').classList.remove('open');
+});
+document.getElementById('lightbox').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) document.getElementById('lightbox').classList.remove('open');
+});
+</script>
+</body>
+</html>

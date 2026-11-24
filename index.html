@@ -620,7 +620,17 @@ footer .copy a:hover{color:var(--accent)}
 </footer>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
+<script src="insforge-config.js"></script>
+<script type="module">
+import { createClient } from 'https://esm.sh/@insforge/sdk@1.5.2';
+
+// Public client: the anon key is safe to ship to the browser. Never put the
+// full-access admin API key here.
+const insforge = createClient({
+  baseUrl: window.INSFORGE_URL,
+  anonKey: window.INSFORGE_ANON_KEY
+});
+
 let lots = [];
 const lotsGrid = document.getElementById('lotsGrid');
 const lotSelect = document.getElementById('lotSelect');
@@ -637,7 +647,7 @@ function renderLots() {
     c.style.transitionDelay = `${i * 0.04}s`;
     c.innerHTML = `
       <div class="lot-card-image">
-        <img src="${name === 'Lote 1' ? 'Lote 1.jpeg' : 'plano.png'}" alt="${name}" style="object-position:center ${20 + i * 3}%">
+        <img src="${lot.image_url || 'plano.png'}" alt="${name}" style="object-position:center ${20 + i * 3}%">
         <span class="lot-badge ${sold ? 'sold' : 'available'}">${sold ? 'Vendido' : 'Disponible'}</span>
       </div>
       <div class="lot-card-body">
@@ -672,8 +682,33 @@ function renderLots() {
   document.querySelectorAll('.lot-card').forEach(el => obs.observe(el));
 }
 
-// Load lot data and map from JSON files
-fetch('datos.json').then(r => r.json()).then(data => { lots = data; renderLots(); renderMap(); });
+// Load lot data from InsForge; fall back to the bundled files if the backend is unreachable.
+async function loadLots() {
+  try {
+    const { data, error } = await insforge.database
+      .from('lots')
+      .select('name, precio, estado, medidas, tamano_m2, tag, image_url, geometry')
+      .order('name', { ascending: true })
+      .limit(100);
+    if (error) throw error;
+    lots = Object.fromEntries(data.map(row => [row.name, row]));
+  } catch (err) {
+    console.warn('InsForge unavailable, using local lot data', err);
+    const [datos, geo] = await Promise.all([
+      fetch('datos.json').then(r => r.json()),
+      fetch('parcelas.geojson').then(r => r.json())
+    ]);
+    lots = Object.fromEntries(Object.entries(datos).map(([name, value]) => [name, {
+      ...value,
+      name,
+      image_url: name === 'Lote 1' ? window.INSFORGE_IMAGES['Lote 1'] : window.INSFORGE_IMAGES.fallback,
+      geometry: geo.features.find(f => f.properties.name === name)?.geometry || null
+    }]));
+  }
+  renderLots();
+  renderMap();
+}
+loadLots();
 
 // Map — Interactive lot polygons
 const map = L.map('map', { zoomControl: false }).setView([-26.4167, -54.5823], 17);
@@ -694,7 +729,7 @@ legend.onAdd = function() {
 };
 legend.addTo(map);
 
-// Lot polygons — real cadastral data from parcelas.geojson
+// Lot polygons — cadastral geometry stored in the lots table
 const card = document.getElementById('lotInfoCard');
 const iDot = document.getElementById('iDot');
 const iName = document.getElementById('iName');
@@ -703,64 +738,58 @@ const iPrice = document.getElementById('iPrice');
 const iSt = document.getElementById('iSt');
 
 function renderMap() {
-  fetch('parcelas.geojson')
-    .then(r => r.json())
-    .then(data => {
-      const allBounds = [];
-      data.features.forEach(f => {
-        const name = f.properties.name;
-        const raw = f.geometry.coordinates[0];
-        const coords = raw.map(c => [c[1], c[0]]);
-        coords.forEach(c => allBounds.push(c));
-        const lot = lots[name];
-        if (!lot) return;
-        const sold = lot.estado === 'vendido';
-        const poly = L.polygon(coords, {
-          color: sold ? '#C0392B' : '#27AE60',
-          weight: 2,
-          fillColor: sold ? '#E74C3C' : '#2ECC71',
-          fillOpacity: sold ? .5 : .2,
-        }).addTo(map);
-        const latSum = coords.reduce((s, c) => s + c[0], 0);
-        const lngSum = coords.reduce((s, c) => s + c[1], 0);
-        const center = L.latLng(latSum / coords.length, lngSum / coords.length);
-        L.marker(center, {
-          icon: L.divIcon({
-            className: '',
-            html: `<span style="font-size:10px;font-weight:600;color:#333;text-shadow:1px 1px 2px #fff,-1px -1px 2px #fff,1px -1px 2px #fff,-1px 1px 2px #fff;white-space:nowrap;">${name}</span>`,
-            iconSize: [0, 0],
-            iconAnchor: [0, 0]
-          }),
-          interactive: false
-        }).addTo(map);
-        poly.bindPopup(`
-          <div class="p-2">
-            <h3 class="font-bold text-base mb-1">${name}</h3>
-            <p class="text-xs text-gray-600">Medidas: ${lot.medidas} · ${lot.tamano_m2} m²</p>
-            <p class="text-xs font-semibold mt-1">Estado: <span style="color:${sold ? '#E74C3C' : '#2ECC71'}">${sold ? 'VENDIDO' : 'DISPONIBLE'}</span></p>
-            ${lot.precio ? `<p class="text-xs mt-1">USD ${lot.precio.toLocaleString()}</p>` : ''}
-          </div>
-        `);
-        poly.on('mouseover', function() {
-          this.setStyle({ fillOpacity: sold ? .7 : .38, weight: 3 });
-          card.classList.add('show');
-          requestAnimationFrame(() => { card.style.opacity = '1'; card.style.transform = 'translateY(0)'; });
-          iDot.style.background = sold ? '#E74C3C' : '#2ECC71';
-          iName.textContent = `${name} · ${lot.tamano_m2} m²`;
-          iMeta.textContent = `${lot.medidas}${lot.tag ? ' · ' + lot.tag : ''}`;
-          iPrice.textContent = lot.precio ? `USD ${lot.precio.toLocaleString()}` : '';
-          iSt.textContent = sold ? 'Vendido' : 'Disponible';
-          iSt.style.background = sold ? 'rgba(231,76,60,.12)' : 'rgba(46,204,113,.12)';
-          iSt.style.color = sold ? '#E74C3C' : '#2ECC71';
-        });
-        poly.on('mouseout', function() {
-          this.setStyle({ fillOpacity: sold ? .5 : .2, weight: 2 });
-          card.style.opacity = '0'; card.style.transform = 'translateY(6px)';
-          setTimeout(() => { if (getComputedStyle(card).opacity === '0') card.classList.remove('show'); }, 360);
-        });
-      });
-      map.fitBounds(L.latLngBounds(allBounds), { padding: [60, 60], maxZoom: 19 });
+  const allBounds = [];
+  Object.values(lots).forEach(lot => {
+    const name = lot.name;
+    if (lot.geometry?.type !== 'Polygon') return;
+    const coords = lot.geometry.coordinates[0].map(c => [c[1], c[0]]);
+    coords.forEach(c => allBounds.push(c));
+    const sold = lot.estado === 'vendido';
+    const poly = L.polygon(coords, {
+      color: sold ? '#C0392B' : '#27AE60',
+      weight: 2,
+      fillColor: sold ? '#E74C3C' : '#2ECC71',
+      fillOpacity: sold ? .5 : .2,
+    }).addTo(map);
+    const latSum = coords.reduce((s, c) => s + c[0], 0);
+    const lngSum = coords.reduce((s, c) => s + c[1], 0);
+    const center = L.latLng(latSum / coords.length, lngSum / coords.length);
+    L.marker(center, {
+      icon: L.divIcon({
+        className: '',
+        html: `<span style="font-size:10px;font-weight:600;color:#333;text-shadow:1px 1px 2px #fff,-1px -1px 2px #fff,1px -1px 2px #fff,-1px 1px 2px #fff;white-space:nowrap;">${name}</span>`,
+        iconSize: [0, 0],
+        iconAnchor: [0, 0]
+      }),
+      interactive: false
+    }).addTo(map);
+    poly.bindPopup(`
+      <div class="p-2">
+        <h3 class="font-bold text-base mb-1">${name}</h3>
+        <p class="text-xs text-gray-600">Medidas: ${lot.medidas} · ${lot.tamano_m2} m²</p>
+        <p class="text-xs font-semibold mt-1">Estado: <span style="color:${sold ? '#E74C3C' : '#2ECC71'}">${sold ? 'VENDIDO' : 'DISPONIBLE'}</span></p>
+        ${lot.precio ? `<p class="text-xs mt-1">USD ${lot.precio.toLocaleString()}</p>` : ''}
+      </div>
+    `);
+    poly.on('mouseover', function() {
+      this.setStyle({ fillOpacity: sold ? .7 : .38, weight: 3 });
+      card.classList.add('show');
+      requestAnimationFrame(() => { card.style.opacity = '1'; card.style.transform = 'translateY(0)'; });
+      iDot.style.background = sold ? '#E74C3C' : '#2ECC71';
+      iName.textContent = `${name} · ${lot.tamano_m2} m²`;
+      iMeta.textContent = `${lot.medidas}${lot.tag ? ' · ' + lot.tag : ''}`;
+      iPrice.textContent = lot.precio ? `USD ${lot.precio.toLocaleString()}` : '';
+      iSt.textContent = sold ? 'Vendido' : 'Disponible';
+      iSt.style.background = sold ? 'rgba(231,76,60,.12)' : 'rgba(46,204,113,.12)';
+      iSt.style.color = sold ? '#E74C3C' : '#2ECC71';
     });
+    poly.on('mouseout', function() {
+      this.setStyle({ fillOpacity: sold ? .5 : .2, weight: 2 });
+      card.style.opacity = '0'; card.style.transform = 'translateY(6px)';
+      setTimeout(() => { if (getComputedStyle(card).opacity === '0') card.classList.remove('show'); }, 360);
+    });
+  });
+  if (allBounds.length) map.fitBounds(L.latLngBounds(allBounds), { padding: [60, 60], maxZoom: 19 });
 }
 
 // --- Hotspots del plano (deshabilitados — usar mapa Leaflet) ---

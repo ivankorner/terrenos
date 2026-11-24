@@ -1,0 +1,10 @@
+# Dev-only files — not needed by the static site at runtime
+.gitignore
+README.md
+AGENTS.md
+migrations/
+.agents/
+.claude/
+skills-lock.json
+Lote 1.jpeg
+plano.png

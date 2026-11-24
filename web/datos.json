@@ -1,0 +1,128 @@
+{
+  "Lote 1": {
+    "precio": 18620,
+    "estado": "disponible",
+    "medidas": "16.7×31.2",
+    "tamano_m2": 521,
+    "tag": "Calle Alecrín"
+  },
+  "Lote 2": {
+    "precio": "-",
+    "estado": "vendido",
+    "medidas": "16×34.88",
+    "tamano_m2": 558,
+    "tag": "Calle sin nombre"
+  },
+  "Lote 3": {
+    "precio": "-",
+    "estado": "vendido",
+    "medidas": "16×34.88",
+    "tamano_m2": 558,
+    "tag": "Calle sin nombre"
+  },
+  "Lote 4": {
+    "precio": 15170,
+    "estado": "disponible",
+    "medidas": "16×34.88",
+    "tamano_m2": 558,
+    "tag": "Calle sin nombre"
+  },
+  "Lote 5": {
+    "precio": 15860,
+    "estado": "disponible",
+    "medidas": "16.7×31.5",
+    "tamano_m2": 525,
+    "tag": "Calle Soita"
+  },
+  "Lote 6": {
+    "precio": 13790,
+    "estado": "disponible",
+    "medidas": "16.7×31.42",
+    "tamano_m2": 525,
+    "tag": "Calle Soita"
+  },
+  "Lote 7": {
+    "precio": 16550,
+    "estado": "disponible",
+    "medidas": "16.65×47.48",
+    "tamano_m2": 791,
+    "tag": "Calle Soita"
+  },
+  "Lote 8": {
+    "precio": 23500,
+    "estado": "disponible",
+    "medidas": "16.65×47.34",
+    "tamano_m2": 788,
+    "tag": "Calle Soita"
+  },
+  "Lote 9": {
+    "precio": 15500,
+    "estado": "disponible",
+    "medidas": "16.7×31.36",
+    "tamano_m2": 523,
+    "tag": "Calle Soita"
+  },
+  "Lote 10": {
+    "precio": 13500,
+    "estado": "disponible",
+    "medidas": "16.7×27.23",
+    "tamano_m2": 454,
+    "tag": "Calle Cañafistola"
+  },
+  "Lote 12": {
+    "precio": 16500,
+    "estado": "disponible",
+    "medidas": "16×34.88",
+    "tamano_m2": 558,
+    "tag": "Calle Cañafistola"
+  },
+  "Lote 13": {
+    "precio": 16500,
+    "estado": "disponible",
+    "medidas": "16×34.88",
+    "tamano_m2": 558,
+    "tag": "Calle Cañafistola"
+  },
+  "Lote 14": {
+    "precio": 13500,
+    "estado": "disponible",
+    "medidas": "16.7×27.2",
+    "tamano_m2": 454,
+    "tag": "Calle Cañafistola"
+  },
+  "Lote 15": {
+    "precio": 15500,
+    "estado": "disponible",
+    "medidas": "16.7×31.2",
+    "tamano_m2": 521,
+    "tag": "Calle Alecrín"
+  },
+  "Lote 16": {
+    "precio": 15500,
+    "estado": "disponible",
+    "medidas": "16.7×31.2",
+    "tamano_m2": 521,
+    "tag": "Calle Alecrín"
+  },
+  "Lote 17": {
+    "precio": 20690,
+    "estado": "disponible",
+    "medidas": "16.7×47.2",
+    "tamano_m2": 788,
+    "tag": "Calle Alecrín"
+  },
+  "Lote 18": {
+    "precio": 17240,
+    "estado": "disponible",
+    "medidas": "16.7×31.2",
+    "tamano_m2": 521,
+    "tag": "Calle Alecrín"
+  },
+  "Lote 11": {
+    "precio": 16500,
+    "estado": "disponible",
+    "medidas": "16×34.88",
+    "tamano_m2": 558,
+    "tag": "Calle Cañafistola"
+  }
+}
